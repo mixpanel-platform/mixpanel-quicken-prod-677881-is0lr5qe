@@ -76,7 +76,7 @@
                 { title: "Revenue", data: "revenue" },
               ]
         });
-      var query = $("#query").html()
+      var query = $(".query").html()
       MP.api.jql(query).done(function(data){
         debugger
         var table = $('#table').DataTable().clear()
