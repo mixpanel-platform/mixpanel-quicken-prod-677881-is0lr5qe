@@ -5,11 +5,87 @@
     <link rel="stylesheet" type="text/css" href="https://cdn.mxpnl.com/libs/mixpanel-platform/css/reset.css">
     <link rel="stylesheet" type="text/css" href="https://cdn.mxpnl.com/libs/mixpanel-platform/build/mixpanel-platform.v0.latest.min.css">
     <script src="https://cdn.mxpnl.com/libs/mixpanel-platform/build/mixpanel-platform.v0.latest.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.12/css/jquery.dataTables.min.css">
+    <script src="https://cdn.datatables.net/1.10.12/js/jquery.dataTables.min.js"></script>
   </head>
   <body class="mixpanel-platform-body">
+    <table id="table" class="display" width="100%"></table>
     <h1>Hello, World!</h1>
+    <script language="jql" class="query">
+      function getDay(event) {
+        return new Date(event.time).toISOString().substr(0, 10);
+      }
+      
+      function main() {
+        return Events({
+          from_date: '2016-08-15',
+          to_date:   '2016-08-16',
+          event_selectors: [{event: "Session Start"}, {event: "Cart Add"}, {event: "Transaction"}]
+        })
+        .groupByUser([getDay, "properties.utm_source", "properties.utm_medium", "properties.utm_campaign"],function(state, events){
+          state = state || {
+                user      : 0,
+                sessions  : 0,
+                carts     : 0,
+                orders    : 0,
+                units     : 0,
+                revenue   : 0
+          }
+          _.each(events, function(event){
+            if (event.name == "Session Start") {
+              state["user"] = 1
+              state["sessions"] += 1
+            }
+            
+            if (event.name == "Cart Add") {
+              state["carts"] += 1
+            }
+            
+            if (event.name == "Transaction") {
+              state["orders"] += 1
+              state["units"] += Number(event.properties["product quantity"])
+              state["revenue"] += Number(event.properties["purchase price"])
+            }
+          })
+          return state
+        })
+        .map(item => {
+          res = {}
+          var key = item.key
+          //Gross way to nest these values for object_merge()
+          var joinedStr = [key[2], key[3], key[4]].join("~")
+          res[key[1]]={}
+          res[key[1]][joinedStr] = item.value
+          return res
+        })
+        .reduce(mixpanel.reducer.object_merge())
+      }
+    </script>
     <script>
-      // Run queries and display results here
+      var table = $('#table').DataTable( {
+            columns: [
+                { title: "Date" , data: 'date' },
+                { title: "Source", data: 'source' },
+                { title: "Medium", data: 'medium' },
+                { title: "Campaign", data: 'campaign' },
+                { title: "User", data: 'user' },
+                { title: "Sessions", data: 'sessions' },
+                { title: "Carts", data: "cart" },
+                { title: "Orders", data: "orders" },
+                { title: "Units", data: "units" },
+                { title: "Revenue", data: "revenue" },
+              ]
+        });
+      var query = $.("#query").html()
+      MP.api.jql(query).done(function(data){
+        debugger
+        var table = $('#table').DataTable().clear()
+        _.each(res[0], function(vals, prod){
+          var row = _.extend({'x-at': prod}, vals)
+          table.row.add(row)
+        })
+       table.draw();
+      })
     </script>
   </body>
 </html>
