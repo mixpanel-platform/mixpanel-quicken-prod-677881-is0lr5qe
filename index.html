@@ -80,7 +80,7 @@
       MP.api.jql(query).done(function(data){
         debugger
         var table = $('#table').DataTable().clear()
-        _.each(res[0], function(vals, date){
+        _.each(data[0], function(vals, date){
           _.each(vals, function(obj, utmStr){
            var src, med, camp = utmStr.split('~')
            var row = _.extend({'date': date}, {source: src, medium: med, campaign: camp}, obj)
